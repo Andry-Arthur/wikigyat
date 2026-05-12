@@ -22,3 +22,26 @@ npm start
 ```
 
 Then open `http://localhost:4173`.
+
+## Deployment (GitHub Pages)
+
+This project is a fully static site (root `index.html` with `app.js` and `styles.css`), so no build step is required.
+
+1. Ensure the GitHub Pages workflow is enabled (see `.github/workflows/deploy.yml`).
+2. In **Settings → Pages**, set **Source** to **GitHub Actions**.
+3. Push to the default branch (`main` or `master`) to trigger deployment.
+
+The site will be available at:
+
+```
+https://<org-or-user>.github.io/wikigyat/
+```
+
+Because asset paths are relative, the app works when hosted from the repository subpath. If you use a custom domain, configure it in **Settings → Pages** and add a `CNAME` file at the repository root with your domain name.
+
+### Validation checklist
+
+- Landing hero renders and featured creators load
+- Sign up / log in flow works
+- Creator profile setup saves and displays
+- Media gallery shows uploaded items and previews
