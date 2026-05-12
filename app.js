@@ -47,7 +47,7 @@ function save() {
   localStorage.setItem("wikigyat-session", JSON.stringify(session));
 }
 
-function esc(value) {
+function escapeHtml(value) {
   return String(value || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
 }
 
@@ -99,7 +99,7 @@ function isSubscribed(subscriberId, creatorId) { return state.subscriptions.some
 function hasPPV(subscriberId, postId) { return state.purchases.some((p) => p.subscriberId === subscriberId && p.postId === postId); }
 
 function renderFeatured() {
-  byId("featured-creators").innerHTML = state.creators.slice(0, 3).map((c) => `<span>${esc(c.displayName)}</span>`).join("");
+  byId("featured-creators").innerHTML = state.creators.slice(0, 3).map((c) => `<span>${escapeHtml(c.displayName)}</span>`).join("");
 }
 
 function renderDiscovery(user) {
@@ -109,21 +109,25 @@ function renderDiscovery(user) {
   const sort = byId("search-sort").value;
   const categories = [...new Set(state.creators.map((c) => c.category).filter(Boolean))];
   const regions = [...new Set(state.creators.map((c) => c.region).filter(Boolean))];
-  byId("search-category").innerHTML = `<option value="all">All categories</option>${categories.map((c) => `<option ${c === category ? "selected" : ""} value="${esc(c)}">${esc(c)}</option>`).join("")}`;
-  byId("search-region").innerHTML = `<option value="all">All regions</option>${regions.map((r) => `<option ${r === region ? "selected" : ""} value="${esc(r)}">${esc(r)}</option>`).join("")}`;
+  const subCounts = state.subscriptions.reduce((map, sub) => {
+    map.set(sub.creatorId, (map.get(sub.creatorId) || 0) + 1);
+    return map;
+  }, new Map());
+  byId("search-category").innerHTML = `<option value="all">All categories</option>${categories.map((c) => `<option ${c === category ? "selected" : ""} value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}`;
+  byId("search-region").innerHTML = `<option value="all">All regions</option>${regions.map((r) => `<option ${r === region ? "selected" : ""} value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join("")}`;
 
   const creators = [...state.creators]
     .filter((c) => (category === "all" || c.category === category) && (region === "all" || c.region === region) && (c.displayName.toLowerCase().includes(term) || c.bio.toLowerCase().includes(term)))
-    .sort((a, b) => sort === "name" ? a.displayName.localeCompare(b.displayName) : state.subscriptions.filter((s) => s.creatorId === b.userId).length - state.subscriptions.filter((s) => s.creatorId === a.userId).length);
+    .sort((a, b) => sort === "name" ? a.displayName.localeCompare(b.displayName) : (subCounts.get(b.userId) || 0) - (subCounts.get(a.userId) || 0));
 
   byId("creator-list").innerHTML = creators.map((c) => {
     const subCount = state.subscriptions.filter((s) => s.creatorId === c.userId).length;
     const subscribed = isSubscribed(user.id, c.userId);
     return `<article class="card">
-      <img class="cover" src="${esc(c.cover || "https://picsum.photos/500/200")}" alt="cover" />
-      <div class="row"><img class="avatar" src="${esc(c.photo || "https://picsum.photos/80")}" alt="avatar" /><strong>${esc(c.displayName)}</strong></div>
-      <p>${esc(c.bio)}</p>
-      <p>${esc(c.category)} · ${esc(c.region)} · ${subCount} subscribers</p>
+      <img class="cover" src="${escapeHtml(c.cover || "https://picsum.photos/500/200")}" alt="cover" />
+      <div class="row"><img class="avatar" src="${escapeHtml(c.photo || "https://picsum.photos/80")}" alt="avatar" /><strong>${escapeHtml(c.displayName)}</strong></div>
+      <p>${escapeHtml(c.bio)}</p>
+      <p>${escapeHtml(c.category)} · ${escapeHtml(c.region)} · ${subCount} subscribers</p>
       <p>Tiers: Basic $${c.tiers.basic} / Premium $${c.tiers.premium} / VIP $${c.tiers.vip}</p>
       <div class="row wrap">
         <button data-view="${c.userId}">Open profile</button>
@@ -153,7 +157,7 @@ function renderDiscovery(user) {
     };
   });
 
-  const options = state.creators.filter((c) => isSubscribed(user.id, c.userId)).map((c) => `<option value="${c.userId}">${esc(c.displayName)}</option>`).join("");
+  const options = state.creators.filter((c) => isSubscribed(user.id, c.userId)).map((c) => `<option value="${c.userId}">${escapeHtml(c.displayName)}</option>`).join("");
   byId("dm-creator").innerHTML = options || "<option>No subscribed creators</option>";
 }
 
@@ -163,10 +167,10 @@ function renderFeed(user) {
   selectedCreatorId = creator.userId;
 
   byId("creator-detail").innerHTML = `<article class="card">
-    <img class="cover" src="${esc(creator.cover || "https://picsum.photos/500/200")}" alt="cover" />
-    <div class="row"><img class="avatar" src="${esc(creator.photo || "https://picsum.photos/80")}" alt="avatar" /><strong>${esc(creator.displayName)}</strong></div>
-    <p>${esc(creator.bio)}</p>
-    <p>Category: ${esc(creator.category)} · Region: ${esc(creator.region)}</p>
+    <img class="cover" src="${escapeHtml(creator.cover || "https://picsum.photos/500/200")}" alt="cover" />
+    <div class="row"><img class="avatar" src="${escapeHtml(creator.photo || "https://picsum.photos/80")}" alt="avatar" /><strong>${escapeHtml(creator.displayName)}</strong></div>
+    <p>${escapeHtml(creator.bio)}</p>
+    <p>Category: ${escapeHtml(creator.category)} · Region: ${escapeHtml(creator.region)}</p>
   </article>`;
 
   const subscribed = isSubscribed(user.id, creator.userId);
@@ -176,11 +180,11 @@ function renderFeed(user) {
     const isVideo = p.type === "video";
     const media = unlocked
       ? isVideo
-        ? `<video class="media" controls src="${esc(p.mediaUrl)}"></video>`
-        : `<img class="media" src="${esc(p.mediaUrl)}" alt="${esc(p.title)}" />`
-      : `<div class="card lock">🔒 ${esc(p.preview || "Locked preview")}. ${p.price > 0 ? `Buy PPV for $${p.price}` : "Subscribe to unlock"}.</div>`;
+        ? `<video class="media" controls src="${escapeHtml(p.mediaUrl)}"></video>`
+        : `<img class="media" src="${escapeHtml(p.mediaUrl)}" alt="${escapeHtml(p.title)}" />`
+      : `<div class="card lock">🔒 ${escapeHtml(p.preview || "Locked preview")}. ${p.price > 0 ? `Buy PPV for $${p.price}` : "Subscribe to unlock"}.</div>`;
     return `<article class="card">
-      <h4>${esc(p.title)} (${esc(p.type)})</h4>
+      <h4>${escapeHtml(p.title)} (${escapeHtml(p.type)})</h4>
       ${media}
       ${!unlocked && p.price > 0 ? `<button data-ppv="${p.id}">Buy PPV $${p.price}</button>` : ""}
     </article>`;
@@ -220,7 +224,7 @@ function renderDMThread(user) {
   const creatorId = byId("dm-creator").value;
   const rows = state.messages
     .filter((m) => (m.fromId === user.id && m.toId === creatorId) || (m.fromId === creatorId && m.toId === user.id))
-    .map((m) => `<p><strong>${m.fromId === user.id ? "You" : esc(creatorProfile(creatorId)?.displayName)}</strong>: ${esc(m.body)}</p>`)
+    .map((m) => `<p><strong>${m.fromId === user.id ? "You" : escapeHtml(creatorProfile(creatorId)?.displayName)}</strong>: ${escapeHtml(m.body)}</p>`)
     .join("");
   byId("dm-thread").innerHTML = rows || "<p>No messages yet.</p>";
 }
@@ -253,12 +257,16 @@ byId("media-form").addEventListener("submit", (e) => {
   const user = currentUser();
   if (!user || user.role !== "creator") return;
   const file = byId("media-file").files[0];
-  const mediaUrl = file ? URL.createObjectURL(file) : (byId("media-type").value === "photo" ? "https://picsum.photos/600" : "https://samplelib.com/lib/preview/mp4/sample-5s.mp4");
+  const mediaType = byId("media-type").value;
+  const fallbackMediaUrl = mediaType === "photo"
+    ? "https://picsum.photos/600"
+    : "https://samplelib.com/lib/preview/mp4/sample-5s.mp4";
+  const mediaUrl = file ? URL.createObjectURL(file) : fallbackMediaUrl;
   state.posts.unshift({
     id: `p${Date.now()}`,
     creatorId: user.id,
     title: byId("media-title").value.trim(),
-    type: byId("media-type").value,
+    type: mediaType,
     price: Number(byId("media-price").value),
     preview: byId("media-preview").value.trim() || "Exclusive preview",
     mediaUrl
@@ -282,7 +290,7 @@ function renderCreator(user) {
   byId("tier-vip").value = creator.tiers.vip;
 
   const posts = state.posts.filter((p) => p.creatorId === user.id);
-  byId("creator-gallery").innerHTML = posts.map((p) => `<article class="card"><strong>${esc(p.title)}</strong><p>${esc(p.type)} · ${p.price > 0 ? `$${p.price} PPV` : "Subscription feed"}</p></article>`).join("") || "<p>No posts yet.</p>";
+  byId("creator-gallery").innerHTML = posts.map((p) => `<article class="card"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.type)} · ${p.price > 0 ? `$${p.price} PPV` : "Subscription feed"}</p></article>`).join("") || "<p>No posts yet.</p>";
 
   const subs = state.subscriptions.filter((s) => s.creatorId === user.id);
   const ppv = state.purchases.filter((x) => state.posts.find((p) => p.id === x.postId && p.creatorId === user.id));
@@ -294,14 +302,14 @@ function renderCreator(user) {
     <article class="card"><h4>PPV sales</h4><p>$${ppvRevenue}</p></article>
   </div>`;
 
-  byId("payouts").innerHTML = state.payouts.filter((p) => p.creatorId === user.id).map((p) => `<li>${esc(p.date)} — $${p.amount}</li>`).join("") || "<li>No payouts yet.</li>";
+  byId("payouts").innerHTML = state.payouts.filter((p) => p.creatorId === user.id).map((p) => `<li>${escapeHtml(p.date)} — $${p.amount}</li>`).join("") || "<li>No payouts yet.</li>";
 
   byId("creator-messages").innerHTML = state.messages
     .filter((m) => m.toId === user.id || m.fromId === user.id)
     .map((m) => {
       const from = state.users.find((u) => u.id === m.fromId)?.username || "unknown";
       const to = state.users.find((u) => u.id === m.toId)?.username || "unknown";
-      return `<p><strong>${esc(from)}</strong> → <strong>${esc(to)}</strong>: ${esc(m.body)}</p>`;
+      return `<p><strong>${escapeHtml(from)}</strong> → <strong>${escapeHtml(to)}</strong>: ${escapeHtml(m.body)}</p>`;
     })
     .join("") || "<p>No messages yet.</p>";
 }
