@@ -1,0 +1,21 @@
+{
+  "name": "wikigyat",
+  "version": "1.0.0",
+  "description": "Wikigyat creator subscription platform prototype",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "test": "echo \"No automated tests configured\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Andry-Arthur/wikigyat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Andry-Arthur/wikigyat/issues"
+  },
+  "homepage": "https://github.com/Andry-Arthur/wikigyat#readme"
+}
